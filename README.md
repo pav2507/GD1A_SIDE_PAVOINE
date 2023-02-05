@@ -12,3 +12,5 @@ les commandes pour jouer sont les suivantes :
   commandes a la manette : 
     fleche de direction 
     saut  = A / X ( xbox / playstation ) 
+
+ps : j'ai essayé d'implementer l'ui de vie et des collectables mais ca n'a pas marché 
