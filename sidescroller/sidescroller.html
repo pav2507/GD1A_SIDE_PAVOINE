@@ -16,24 +16,51 @@ var platforms;
 var stars;
 var score=0;
 var scoreText;
-var bombs;
 var gameOver= false;
-
+var mechant = false;
+var mechantvelocity = 100; 
+var playerhp = 100;
+var can_get_hit = true
 
 var config = {
     type: Phaser.AUTO,
-    width: 800, height: 800,
+    width: 700, height: 400,
+    // width: 700, height: 400,
     physics: {
         default: 'arcade',
         arcade: {
             gravity: { y: 300},
-            debug: false
+            debug: false   
         }},
     scene: {preload: preload, create: create, update: update }
 
     
 };
 new Phaser.Game(config);
+
+function cddegats(){
+    can_get_hit = true 
+    player.setTint(0xffffff)
+
+}
+
+
+function playerDegats()
+{
+    if (can_get_hit){
+        can_get_hit = false
+        console.log(playerhp)
+        playerhp -= 50;
+        if (playerhp <= 0)
+        {
+            gameOver = true;
+            player.setTint(0xff0000)
+
+        }
+        player.setTint(0xff0000)
+        setTimeout(cddegats, 1000);
+    }
+}
 
 
 function preload(){
@@ -49,20 +76,18 @@ function preload(){
     
     this.load.tilemapTiledJSON("carte", "assets/tuile_de_jeu.json"); 
 
+    this.load.image('bomb', 'assets/bomb.png');// esaie implementer mechant 
 
-    
+    //this.load.image('lifeUI', 'assets/vie_monocle.png');// essaie implementer barre de vie 
+
 
 }
-
-var platforms;
-var player;
-var cursors;
-
 
 
 function create (){
     //Création de la caméra
-    this.cameras.main.setSize(800,600);
+    //this.cameras.main.setSize(800,800);
+    this.cameras.main.setBounds(0,0,1600,1600);
     
     this.add.image(800,800,'sky');
 
@@ -77,28 +102,36 @@ function create (){
 
     // chargement du calque calque_background
     const plateformes = carteDuNiveau.createLayer(
-          "Calque de Tuiles 1",
+          "calque_de_tuile",
           tileset
+    );
+    const traps = carteDuNiveau.createLayer(
+          "calque_de_pique",
+          tileset 
     );
 
     console.log(plateformes)
     plateformes.setCollisionByProperty({ estsolide: true }); 
+    traps.setCollisionByProperty({ estsolide: true }); 
 
-     /*
-    this.add.image(400, 300, 'sky');
-    platforms = this.physics.add.staticGroup();
-    platforms.create(320, 568, 'ground').setScale(2).refreshBody();
-    platforms.create(600, 400, 'ground');
-    platforms.create(40, 380, 'ground');
-    platforms.create(520, 250, 'ground');
-    */
 
-    player = this.physics.add.sprite(100, 100
-, 'perso');
+    player = this.physics.add.sprite(100, 100, 'perso');
     player.setBounce(0.2);
     player.setCollideWorldBounds(true);
 
     this.physics.add.collider(player, plateformes);
+    this.physics.add.collider(player, traps, mortpersonnage, null , this );
+
+    mechant = this.physics.add.sprite(500, 1400, 'bomb');
+    mechant.setBounce(0.2);
+    mechant.setCollideWorldBounds(true);
+
+    this.physics.add.collider(mechant, plateformes);
+    this.physics.add.collider(player, mechant, playerDegats, null , this );
+
+    
+
+
 
     this.anims.create({
     key: 'left',
@@ -122,10 +155,33 @@ function create (){
    
     this.physics.world.setBounds (0,0, 1600,1600);
     this.cameras.main.startFollow (player);
+
+    
+    this.anims.create({ // essaie de barre de vie sous forme de monocle 
+        key: 'maxLife',
+        frames: this.anims.generateFrameNumbers('lifeUI', {start:0,end:1}),
+        frameRate: 2,
+        repeat: -1
+    })
+
+    this.anims.create({
+        key: 'midLife',
+        frames: this.anims.generateFrameNumbers('lifeUI', {start:2,end:3}),
+        frameRate: 2,
+        repeat: -1
+    })
+
+    this.anims.create({
+        key: 'lowLife',
+        frames: this.anims.generateFrameNumbers('lifeUI', {start:4,end:5}),
+        frameRate: 2,
+        repeat: -1
+    })
+}
   
 
 
-}
+
 
 function update(){
     if (gameOver){return;}
@@ -136,7 +192,8 @@ function update(){
         }
         else if (cursors.right.isDown){ //sinon si la touche droite est appuyée
         player.setVelocityX(100); //alors vitesse positive en X
-        player.anims.play('right', true); //et animation => droite
+        player.anims.play('right', true); 
+        console.log("test");//et animation => droite
         }
         else{ // sinon
         player.setVelocityX(0); //vitesse nulle
@@ -156,8 +213,32 @@ function update(){
         // et qu'il touche un mur en allant vers la gauche.
 
         player.setVelocityY(-200)
-        }   
+    }   
+    delacementmechant();
+    mechant.setVelocityX(mechantvelocity)    
 } 
+
+function delacementmechant (){
+    if (mechant.body.position.x<160)
+    {
+        mechantvelocity = 100
+    }
+    if (mechant.body.position.x>300
+    )
+    {
+        mechantvelocity = -100
+    }
+
+
+}
+
+function mortpersonnage (player){
+    this.physics.pause();
+    player.setTint(0xff0000);
+    player.anims.play('turn');
+}
+
+
 
 
 
