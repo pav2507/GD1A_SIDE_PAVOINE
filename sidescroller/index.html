@@ -1,0 +1,247 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" /><title>Mon 1er jeu Phaser</title>
+<script
+src="//cdn.jsdelivr.net/npm/phaser@3.55.2/dist/phaser.js"></script>
+
+<style type="text/css"> body { margin: 0; }</style>
+</head>
+<body>
+<script type="text/javascript">
+
+var player;
+var cursors;
+var platforms;
+var stars;
+var score=0;
+var scoreText;
+var gameOver= false;
+var mechant = false;
+var mechantvelocity = 100; 
+var playerhp = 100;
+var can_get_hit = true
+
+var config = {
+    type: Phaser.AUTO,
+    width: 700, height: 400,
+    // width: 700, height: 400,
+    physics: {
+        default: 'arcade',
+        arcade: {
+            gravity: { y: 300},
+            debug: false   
+        }},
+    scene: {preload: preload, create: create, update: update }
+
+    
+};
+new Phaser.Game(config);
+
+function cddegats(){
+    can_get_hit = true 
+    player.setTint(0xffffff)
+
+}
+
+
+function playerDegats()
+{
+    if (can_get_hit){
+        can_get_hit = false
+        console.log(playerhp)
+        playerhp -= 50;
+        if (playerhp <= 0)
+        {
+            gameOver = true;
+            player.setTint(0xff0000)
+
+        }
+        player.setTint(0xff0000)
+        setTimeout(cddegats, 1000);
+    }
+}
+
+
+function preload(){
+    this.load.image('sky', 'assets/Base niveau tiled.png');
+    
+    
+
+    this.load.spritesheet('perso','assets/perso.png',
+        { frameWidth: 32, frameHeight: 48 });
+
+    // chargement tuiles de jeu
+    this.load.image("Phaser_tuilesdejeu", "assets/NiveauSidescrollerUsine.png");
+    
+    this.load.tilemapTiledJSON("carte", "assets/tuile_de_jeu.json"); 
+
+    this.load.image('bomb', 'assets/bomb.png');// esaie implementer mechant 
+
+    //this.load.image('lifeUI', 'assets/vie_monocle.png');// essaie implementer barre de vie 
+
+
+}
+
+
+function create (){
+    //Création de la caméra
+    //this.cameras.main.setSize(800,800);
+    this.cameras.main.setBounds(0,0,1600,1600);
+    
+    this.add.image(800,800,'sky');
+
+    // chargement de la carte
+    const carteDuNiveau = this.add.tilemap("carte");
+
+    // chargement du jeu de tuiles
+    const tileset = carteDuNiveau.addTilesetImage(
+        "New Piskel update006",
+        "Phaser_tuilesdejeu"
+    );  
+
+    // chargement du calque calque_background
+    const plateformes = carteDuNiveau.createLayer(
+          "calque_de_tuile",
+          tileset
+    );
+    const traps = carteDuNiveau.createLayer(
+          "calque_de_pique",
+          tileset 
+    );
+
+    console.log(plateformes)
+    plateformes.setCollisionByProperty({ estsolide: true }); 
+    traps.setCollisionByProperty({ estsolide: true }); 
+
+
+    player = this.physics.add.sprite(100, 100, 'perso');
+    player.setBounce(0.2);
+    player.setCollideWorldBounds(true);
+
+    this.physics.add.collider(player, plateformes);
+    this.physics.add.collider(player, traps, mortpersonnage, null , this );
+
+    mechant = this.physics.add.sprite(500, 1400, 'bomb');
+    mechant.setBounce(0.2);
+    mechant.setCollideWorldBounds(true);
+
+    this.physics.add.collider(mechant, plateformes);
+    this.physics.add.collider(player, mechant, playerDegats, null , this );
+
+    
+
+
+
+    this.anims.create({
+    key: 'left',
+    frames: this.anims.generateFrameNumbers('perso', {start:0,end:3}),
+    frameRate: 10,
+    repeat: -1
+    });
+    this.anims.create({
+    key: 'turn',
+    frames: [ { key: 'perso', frame: 4 } ],
+    frameRate: 20
+    });
+    this.anims.create({
+    key: 'right',
+    frames: this.anims.generateFrameNumbers('perso', {start:5,end:8}),
+    frameRate: 10,
+    repeat: -1
+    });
+    cursors = this.input.keyboard.createCursorKeys();
+
+   
+    this.physics.world.setBounds (0,0, 1600,1600);
+    this.cameras.main.startFollow (player);
+
+    
+    this.anims.create({ // essaie de barre de vie sous forme de monocle 
+        key: 'maxLife',
+        frames: this.anims.generateFrameNumbers('lifeUI', {start:0,end:1}),
+        frameRate: 2,
+        repeat: -1
+    })
+
+    this.anims.create({
+        key: 'midLife',
+        frames: this.anims.generateFrameNumbers('lifeUI', {start:2,end:3}),
+        frameRate: 2,
+        repeat: -1
+    })
+
+    this.anims.create({
+        key: 'lowLife',
+        frames: this.anims.generateFrameNumbers('lifeUI', {start:4,end:5}),
+        frameRate: 2,
+        repeat: -1
+    })
+}
+  
+
+
+
+
+function update(){
+    if (gameOver){return;}
+    
+    if (cursors.left.isDown){ //si la touche gauche est appuyée
+        player.setVelocityX(-100); //alors vitesse négative en X
+        player.anims.play('left', true); //et animation => gauche
+        }
+        else if (cursors.right.isDown){ //sinon si la touche droite est appuyée
+        player.setVelocityX(100); //alors vitesse positive en X
+        player.anims.play('right', true); 
+        console.log("test");//et animation => droite
+        }
+        else{ // sinon
+        player.setVelocityX(0); //vitesse nulle
+        player.anims.play('turn'); //animation fait face caméra
+        }
+        if (cursors.up.isDown && player.body.blocked.down){
+        //si touche haut appuyée ET que le perso touche le sol
+        player.setVelocityY(-200); //alors vitesse verticale négative
+        //(on saute)
+        }    
+        if(cursors.up.isDown && player.body.blocked.right){ // si la touche du haut est appuyée
+        // et qu'il touhe un mur en allant vers la droite.
+
+        player.setVelocityY(-200) // alors vitesse verticale négative 
+        }
+        if(cursors.up.isDown && player.body.blocked.left){ // si la touche du est appuyée 
+        // et qu'il touche un mur en allant vers la gauche.
+
+        player.setVelocityY(-200)
+    }   
+    delacementmechant();
+    mechant.setVelocityX(mechantvelocity)    
+} 
+
+function delacementmechant (){
+    if (mechant.body.position.x<160)
+    {
+        mechantvelocity = 100
+    }
+    if (mechant.body.position.x>300
+    )
+    {
+        mechantvelocity = -100
+    }
+
+
+}
+
+function mortpersonnage (player){
+    this.physics.pause();
+    player.setTint(0xff0000);
+    player.anims.play('turn');
+}
+
+
+
+
+
+</script>
+</body>
+</html>
